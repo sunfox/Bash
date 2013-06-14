@@ -1,0 +1,149 @@
+#!/bin/bash
+# Author : SunFox
+# License :
+# Date 14-06-2013
+# Simple Gentoo's Make.conf Editor.
+
+#Colors definition :
+black='\033[1;30m'
+red='\033[1;31m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+blue='\033[1;34m'
+white='\033[1;37m'
+
+###MAIN Constants
+SCRIPT_VERSION="$red 1.3-r8"
+SCRIPT_NAME="$blue ::MakEditor Utility $SCRIPT_VERSION"
+##########################Color Function
+cecho () {
+          #Color-echo function
+          #Argument $1 : message.
+          #Argument $2 : color.
+          NONE=""
+          MESSAGE1=${1:-$NONE}
+          COLOR1=${2:-$white}
+          MESSAGE2=${3:-$NONE}
+          COLOR2=${4:-$white}
+          echo -e "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+          return
+}
+necho () {
+          #Color-echo function
+          #Argument $1 : message.
+          #Argument $2 : color.
+          NONE=""
+          MESSAGE1=${1:-$NONE}
+          COLOR1=${2:-$white}
+          MESSAGE2=${3:-$NONE}
+          COLOR2=${4:-$white}
+          echo -ne "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+          return
+}
+search_in_files(){
+                  cecho "$blue ::Search Sys Files Utility "
+                  necho "$blue ::Keyword: "; read KEYW
+                  necho "$blue Searching "; echo "$KEYW ..."
+                  cecho "$blue ::/etc/make.conf"
+                  BUSQ=`cat /etc/make.conf | grep $KEYW`
+                  if [ -z "$BUSQ" ]; then
+                    cecho "$red >>No matches found"
+                  else
+                    cecho "$green $BUSQ"
+                  fi
+                  cecho "$blue ::/etc/portage/package.keywords"
+                  BUSQ=`cat /etc/portage/package.keywords | grep $KEYW`
+                  if [ -z "$BUSQ" ]; then
+                    cecho "$red >>No matches found"
+                  else
+                    echo -e "033[1;32m $BUSQ 033[0m"
+                  fi
+}
+
+world(){
+  cecho "$blue ::World Utility "
+  cecho "$blue ::Showing packages installed ..."
+  CONT=`wc -l /var/lib/portage/world | cut -d" " -f1`
+  cecho "$blue ::Packages installed : $green $CONT"
+  cecho "$green >>Done!"
+  necho "$blue ::Select and Option [1:show|2:grep]: "; read OPT
+  case $OPT in
+    1)
+     cecho "$blue ::Show all packages ..."
+     read manulo
+     I=1; CAT2="b";CAT="a";
+     while read LINE; do
+       if [ $I -ge 2 ]; then
+         if [ "$CAT" == "$CAT2" ]; then
+           PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+           PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+           VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+           cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+         else
+           CAT2=$CAT
+           PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+           PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+           VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+           echo "------------------------------"
+           cecho "$yellow [C] $CAT"
+           cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+         fi
+       else
+         CAT=`echo $LINE | cut -d"/" -f1`
+         PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+         PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+         VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+         cecho "$yellow [C] $CAT"
+         cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+       fi
+       I=`expr $I + 1`
+     done < /var/lib/portage/world
+    ;;
+  esac
+}
+
+adding(){
+         TAMLINE=`expr ${#LINE} - 1`
+         while read LIN; do
+           if [ "$LIN" == "$LINE" ]; then
+             LINE2=${LINE:0:$TAMLINE}" "$TOADD""
+             echo $LINE2 >> $TEMP
+           else
+             echo $LIN >> $TEMP
+           fi
+         done< /etc/make.conf
+         mv $TEMP /etc/make.conf
+}
+cecho "$SCRIPT_NAME"
+TEMP="/etc/make.tmp"
+if [ "${USER}" == "root" ]; then
+  cecho "$blue Simply Make.conf Lines Utility"
+  necho "$blue Select (1=AddUSE; 2=AddLICENSE; 3=Search; 4=world)"; read ACTION
+  #necho "$blue Select (1=USE;2=LICENSE)"; read CAT
+  case $ACTION in
+    1)
+      cecho "$blue Showing Use categories"
+      LINE=`cat /etc/make.conf | grep USE | egrep -v "#"`
+      cecho "$LINE"
+      cecho "$blue Setting USE line"
+      read LINE
+#       necho "$blue KeyLine: "; read UT
+#       LINE=` cat /etc/make.conf | grep $UT | egrep -v USE`
+#       necho "$blue To add to $LINE : "; read TOADD
+      adding
+    ;;
+    2)
+     cecho "$bue Showing active licenses"
+     LINE=`cat /etc/make.conf | grep LICENSE`
+     cecho "$LINE"
+     necho "$blue To add to : "; read TOADD
+     if [ $TOADD != "" ]; then
+       adding
+     fi
+    ;;
+    3) search_in_files ;;
+    4) world ;;
+  esac
+else
+  cecho "$red ERROR : $USER can't use Backup Utility!"
+fi

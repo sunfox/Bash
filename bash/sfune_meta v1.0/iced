@@ -1,0 +1,384 @@
+#!/bin/bash
+# Author : SunFox
+# License : GPLv3
+# Sfuke 2010.
+# Ice Module.
+#Colors definition :
+black='\033[1;30m'
+red='\033[1;31m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+blue='\033[1;34m'
+white='\033[1;37m'
+##########################Color Function
+cecho () {
+#Color-echo function
+#Argument $1 : message.
+#Argument $2 : color.
+NONE=""
+MESSAGE1=${1:-$NONE}
+COLOR1=${2:-$white}
+MESSAGE2=${3:-$NONE}
+COLOR2=${4:-$white}
+echo -e "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+return
+}
+necho () {
+#Color-echo function
+#Argument $1 : message.
+#Argument $2 : color.
+NONE=""
+MESSAGE1=${1:-$NONE}
+COLOR1=${2:-$white}
+MESSAGE2=${3:-$NONE}
+COLOR2=${4:-$white}
+echo -ne "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+return
+}
+mount_image(){
+  ISO=$FOLD$OPTION2
+  if [ -e "/mnt/$OPTION2.iss" ]; then
+    cecho "$red Error. /mnt/$OPTION2.iis already exists!"
+  else
+    cecho "$red Creating /mnt/$OPTION2.iis"
+    mkdir /mnt/$OPTION2".iis"
+    mount -t iso9660 $ISO -o loop /mnt/"$OPTION2.iis"
+    cecho "$green >>Success!"
+    FOLD="/mnt/$OPTION2.iis"
+  fi
+}
+umount_image(){
+  ISO=$FOLD$OPTION2
+  if [ -e /mnt/"I""$OPTION2" ]; then
+    umount /mnt/"$OPTION2.iis"
+    cecho "$red Removing /mnt/"$OPTION2".iis"
+    rm -R /mnt/$OPTION2".iis"
+  else
+    cecho "$red Error. /mnt/"$OPTION2".iis not exists!"
+  fi
+}
+Ext_copy(){
+           TOTAL_FILES=0
+           for I in `ls $FOLD | grep $EXT`; do
+             TOTAL_FILES=`expr $TOTAL_FILES + 1`
+           done
+           necho "$blue ::Dest: "; read $DEST/
+           for I in `ls $FOLD | grep $EXT`; do           
+             cecho "$blue ::Copying [$NM/$TOTAL_FILES] $I to $yellow $DEST/"
+             TOTAL=`du -bh "$FOLD$I"`; TOTAL=${TOTAL:0:4}
+             SIZE2=0
+             cecho "$blue ::File : $green $ELEMENT"
+             cecho "$blue ::Size : $green $TOTAL"
+             cp $FOLD$I $DEST/ &
+             CPPID=`pidof cp`
+             cecho "$blue Pid : $CPPID"
+             while [ "$SIZE2" != "$TOTAL" ]; do
+               LOC=`ls $DEST | grep $I`; SIZE2=`du -bh "$DEST$LOC"`; SIZE2=${SIZE2:0:4}
+               cecho "$blue $SIZE2 / $TOTAL"; sleep 2
+             done
+           done
+}
+##########################################################
+    if [ "$1" == "" ]; then
+           OPTION2="2"
+           FOLD="$HOME/"
+           while [ "$OPTION2" != "quit" ]; do
+              echo
+              echo    
+              clear       
+              cecho "$green IceD $blue - The SfuRe File Manager $red $VERSION"
+              cecho "$blue Files  ChangeName[change] Copy[copy] Remove[del] Decompress[dec]"
+              cecho "$blue Drives Mount[mount] Umount[umount] Mkdir[ndir] $red Iumount[iumount]"
+              cecho "$blue Exit[quit]"
+              echo
+              necho "$blue Drives: "
+              for I in `ls /mnt/ | grep ".imp"`; do 
+                #if [ "$I" == "cdrom" ] && [ "$I" == "floppy" ]; then
+                  necho "$red $I "
+                #fi
+              done
+              echo
+              necho "$blue Isos: "
+              for I in `ls /mnt/ | grep ".iis"`; do 
+                #if [ "$I" == "cdrom" ] && [ "$I" == "floppy" ]; then
+                  necho "$red $I "
+                #fi
+              done
+              echo
+              cecho "$green [$blue $FOLD $green ]";echo
+              ND=0
+              for I in `ls -1 $FOLD`; do
+                #if [ "`file "$I" | cut -d" " -f2`" == "directory" ]; then
+                 #if [ -d "$I" ]; then
+                 CASO="`file $FOLD"$I" | cut -d" " -f2`"
+                 if [ "$CASO" == "directory" ]; then
+                  ND=`expr $ND + 1`
+                 fi
+              done
+######Obtaining Drectories...
+             cecho "$yellow [D] : $ND"; SIZE=" "
+             SAVEIFS=$IFS: IFS=$(echo -en "\n\b")
+             for I in `ls -1 $FOLD`; do
+               CASO="`file $FOLD"$I" | cut -d" " -f2`"
+               if [ "$CASO" == "directory" ]; then
+                 #if [ "`ls -la $FOLD | grep $I | tr -s " " " " | cut -d" " -f3`" != "root" ]; then
+                    ESVACIO=`stat -c%s $FOLD"$I"`
+                    if [ $ESVACIO -gt 0 ]; then
+                      NUMBER_OF_FOLDERFILES=`ls $FOLD"$I" | wc -l`
+                      SIZE=`du -ch $FOLD"$I" | grep total`
+                      LENGTHI=${#I}
+                      LENGTHSIZE=${#SIZE}
+                      NLENGTH=`expr $LENGTHSIZE - 6`
+                      SIZE=${SIZE:0:$NLENGTH}
+                    else
+                      SIZE="   "
+                    fi
+                    TAMFILE=${#I}    
+                    while [ $TAMFILE -lt 17 ] ; do
+                      I=$I" "
+                      TAMFILE=${#I}    
+                    done
+                    DIR="$I"
+                    cecho "[$NUMBER_OF_FOLDERFILES]$blue $DIR $blue [$green $SIZE $blue]"
+                 #fi
+               #else
+               # DIR="$I"; SIZE="Unk"
+               # cecho "[$NUMBER_OF_FOLDERFILES]$blue $DIR $blue [$green $SIZE $blue]"     
+               fi           
+             done
+             echo;NF=0
+             for I in `ls $FOLD`; do
+               #if [ "`file "$I" | cut -d" " -f2`" != "directory" ]; then
+                 CASO="`file $FOLD"$I" | cut -d" " -f2`"
+                 if [ "$CASO" != "directory" ]; then
+                 NF=` expr $NF + 1`
+               fi
+             done
+              IFS=$SAVEIFS
+######Obtaining Files...
+               cecho "$yellow [F] : $NF"
+               SAVEIFS=$IFS: IFS=$(echo -en "\n\b")
+               for I in `ls $FOLD`; do
+                 CASO="`file $FOLD"$I" | cut -d" " -f2`";
+                 if [ "$CASO" != "directory" ]; then
+                   TIPO="`file $FOLD"$I" | cut -d":" -f2`"
+                   SIZE=`du -h $FOLD"$I"`
+                   LENGTHI=${#I}
+                   LENGTHSIZE=${#SIZE}
+                   DIRFIL="$FOLD""$I"; LDIRFIL=${#DIRFIL}
+                   NLENGTH=`expr $LENGTHSIZE - $LDIRFIL`
+                   SIZE=${SIZE:0:$NLENGTH}
+                   TAMSIZE=${#SIZE}    
+                   while [ $TAMSIZE -gt 4 ] ; do
+                     TAMSIZE=` expr $TAMSIZE - 1`
+                     SIZE=${SIZE:0:$TAMSIZE}
+                   done
+                   TAMFILE=${#I}    
+                   while [ $TAMFILE -lt 25 ] ; do
+                     I=$I" "
+                     TAMFILE=${#I}    
+                   done
+                   necho "$blue [$green $SIZE $blue]" 
+                   cecho "$yellow $I $blue [$green$TIPO $blue] "
+                 fi
+               done
+               IFS=$SAVEIFS
+#######Starting Ice Module
+               necho "$blue [CMD]:"; read OPTION2
+#########################################################ICED Commands
+              case $OPTION2 in
+               mount)
+                 if [ "${USER}" == "root" ]; then
+                   cecho "::Ice Mount Utility"
+                   for I in `ls /dev/ | grep sd`; do
+                     if [ "${I:0:3}" != "sda" ]; then #| cut -d"" 
+                      if [ "${I:0:3}" != "sdb" ]; then
+                        ls /dev/ | grep $I
+                        necho "$blue ::Select ps[xxx] partition to mount : "; read PART
+                        PFOLD="/mnt/ps"$PART".imp"
+                        if [ -e $PFOLD ]; then
+                          cecho "$red ERROR! $PFOLD already exists!"
+                        else
+                          cecho "::Mounting ps$PART to $PFOLD..."
+                          mkdir $PFOLD; mount /dev/s$PART $PFOLD
+                          cecho "$green >>Done!"
+                        fi
+                        FOLD="$PFOLD/"
+                        break
+                      fi
+                     fi
+                   done
+                 else
+                   cecho "$red ::${USER} cannot mount any device"; read pepe
+                 fi
+              ;;
+              umount)
+                if [ "${USER}" == "root" ]; then
+                  cecho "$blue ::Ice uMount Utility"
+                  ls /mnt/ | grep psd
+                  necho "::Select psd[xx] partition to umount : "; read PART
+                  PFOLD="/mnt/psd"$PART".imp"
+                  if  [ -e $PFOLD ]; then
+                    cecho "$blue ::Umounting $PFOLD ..."
+                    umount $PFOLD
+                  else
+                    cecho "$red ::ERROR! $PFOLD not exists!"
+                  fi
+                  cecho "$red ::Safe Remove? $PFOLD"; read juan
+                  rm -R $PFOLD
+                fi
+                FOLD="/mnt/"
+              ;;
+              ndir) necho "$blue ::DirName : "; read DIRNAME; mkdir $FOLD$DIRNAME ;;
+              change)
+                necho "$blue ::Names : Orig|New: "; read NAMES
+                if [ "$NAMES" == " " ]; then
+                  FOLD="$FOLD"
+                else
+                  NAME1=`echo $NAMES | cut -d" " -f1`
+                  NAME2=`echo $NAMES | cut -d" " -f2`
+                  mv $FOLD$NAME1 $FOLD$NAME2
+                fi
+              ;;
+              copy)
+                   cecho "$red :: Warning!. To copy a file, it musn't have spaces"
+                   necho "$blue ::KeyF/D and Dir : "; read SOURCE_DEST
+                   case $SOURCE_DEST in
+                      " ") FOLD="$FOLD" ;;
+                      "mp3") EXT="mp3";  Ext_copy ;;
+                      "mp4") EXT="mp4";  Ext_copy ;;
+                      "mkv") EXT="mkv";  Ext_copy ;;
+                      "avi") EXT="avi";  Ext_copy ;;
+                      "jpg") EXT="jpg";  Ext_copy ;;
+                      "jpeg") EXT="jpeg";  Ext_copy ;;
+                      "png") EXT="png";  Ext_copy ;;
+                      "gif") EXT="gif";  Ext_copy ;;
+                      "txt") EXT="txt";  Ext_copy ;;
+                      "lst") EXT="lst";  Ext_copy ;;
+                      "iso") EXT="iso";  Ext_copy ;;
+                      "sh") EXT="sh";  Ext_copy ;;
+                      "rar") EXT="rar";  Ext_copy ;;
+                      "zip") EXT="zip";  Ext_copy ;;
+                      *)
+                        NM=1; NUMBER2COPY=`echo $SOURCE_DEST | wc -w`; NUMBER2COPY=`expr $NUMBER2COPY - 1`
+                        while [ $NM -le $NUMBER2COPY ]; do
+                          NM=`expr $NM + 1`
+                        done
+                        DEST=`echo $SOURCE_DEST | cut -d" " -f$NM`"/"
+                        NM=1
+                        while [ $NM -le $NUMBER2COPY ]; do
+                          ELEMENT=`echo $SOURCE_DEST | cut -d" " -f$NM`; ELEMENT=`ls $FOLD | grep $ELEMENT`
+                          cecho "$blue ::Copying [$NM/$NUMBER2COPY] to $yellow $DEST"
+                          SOURCE=$FOLD$ELEMENT
+                          CASO="`file $SOURCE | cut -d" " -f2`"
+                          if [ "$CASO" == "directory" ]; then     
+                            TOTAL=`du -ch $SOURCE | grep total`; TOTAL=${TOTAL:0:4}                                       
+                            cp -R $SOURCE $DEST/ &
+                            CPPID=`pidof cp`
+                            cecho "$blue Pid:$CPPID"
+                            while [ "$SIZE2" != "$TOTAL" ]; do
+                              LOC=`ls $DEST | grep $ELEMENT`; SIZE2=`du -ch $DEST$LOC | grep total`; SIZE2=${SIZE2:0:4}; cecho "$blue $SIZE2 / $TOTAL";sleep 2
+                            done
+                          else
+                            TOTAL=`du -bh "$SOURCE"`; TOTAL=${TOTAL:0:4}
+                            SIZE2=0
+                            cecho "$blue ::File : $green $ELEMENT"
+                            cecho "$blue ::Size : $green $TOTAL"
+                            cp $SOURCE $DEST/ &
+                            CPPID=`pidof cp`
+                            cecho "$blue Pid : $CPPID"
+                            while [ "$SIZE2" != "$TOTAL" ]; do
+                              LOC=`ls $DEST | grep $ELEMENT`; SIZE2=`du -bh "$DEST$LOC"`; SIZE2=${SIZE2:0:4}
+                              cecho "$blue $SIZE2 / $TOTAL"; sleep 2
+                            done
+                          fi
+                          NM=`expr $NM + 1`
+                        done
+                        FOLD=$DEST
+                      ;;
+                   esac
+              ;;
+              del)
+                  necho "$blue ::F/D : "; read FILES_RM
+                  if [ "$FILES_RM" == " " ]; then
+                     FOLD="$FOLD"
+                  else
+                    NM=1; NUMBER2RM=`echo $FILES_RM | wc -w`;
+                    while [ "$NM" -le "$NUMBER2RM" ]; do
+                      ELEMENT=`echo $FILES_RM | cut -d" " -f$NM`
+                      TO_REMOVE=$FOLD$ELEMENT; TOTAL=`du -ch "$TO_REMOVE" | grep total`; TOTAL=${TOTAL:0:4}
+                      cecho "$red [$NM/$NUMBER2RM]::Removing $ELEMENT [$green $TOTAL $blue]"; sleep 2
+                      CASO="`file $TO_REMOVE | cut -d" " -f2`"
+                      if [ -e $TO_REMOVE ]; then
+                        if [ "$CASO" == "directory" ]; then
+            	          rm -R $TO_REMOVE
+                        else
+                          rm $TO_REMOVE
+                        fi
+                      else
+                        cecho "$red ::ERROR $ELEMENT doesn't exists!"
+                      fi   
+                      NM=`expr $NM + 1`
+                    done
+                  fi
+                  sleep 1
+              ;;
+              dec)
+                 clear
+                 cecho "$blue ::Decompress a file"           
+                 sls | grep rar; ls | grep zip; ls | grep tar 
+                 necho "$blue ::File keyword: "; read KEYW
+                 FILE="`ls $D/ | grep $KEYW`"
+                 case "$FILE" in
+                    *bzip2*) bzip2 -d "$FILE" | tar xvf ;;
+                    *gzip*) gzip -d "$FILE" | tar xvf ;;
+                    *rar*) unrar  e "$FILE" ;;
+                    *tar*) tar xvf "$FILE" ;;                  
+                    *zip*) unzip "$FILE" ;;    
+                 esac
+                 FOLD=$D
+              ;;
+              imount) umount_image ;;
+              quit)
+                   cecho "Exiting..."
+              ;;
+              *)
+                OPT2CMP=${OPTION2:0:1}
+                if [ "$OPT2CMP" == "/" ]; then
+                  FOLD="$OPTION2/"
+                else
+                  if [ "$OPTION2" == ".." ]; then
+                    cd ..; FOLD=`pwd`"/"
+                  else
+                    FOLD2="`ls $FOLD | grep $OPTION2`"
+                    if [ -d $FOLD$FOLD2 ]; then
+                      FOLD2=$FOLD2"/"; FOLD="$FOLD$FOLD2"; cd $FOLD
+                    else
+                      SAVEIFS=$IFS: IFS=$(echo -en "\n\b")
+                      FILE="`ls $FOLD | grep $OPTION2`"
+                      for I in `ls $FOLD`; do
+                        if [ "$I" == "$FILE" ]; then
+                          case "$FILE" in
+                            *jpg) gpicview "$FILE" &;;
+                            *jpeg) gpicview "$FILE" &;;
+                            *png) gpicview "$FILE" &;;
+                            *mp3) uxterm -e mplayer "$FILE" &;;                  
+                            *mp4) uxterm -e mplayer "$FILE" &;;    
+                            *avi) uxterm -e mplayer "$FILE" &;;
+                            *mkv) uxterm -e mplayer "$FILE" &;;                  
+                            *mp4) uxterm -e mplayer "$FILE" &;;  
+                            *lst) uxterm -e mp3blaster -l "$FILE" &;;
+                            *iso) mount_image ;; 
+                          esac   
+                          cecho "$blue ::Pid : `pidof "$FILE"`"    
+                        fi
+                      done
+                      IFS=$SAVEIFS
+                    fi
+                  fi
+                fi
+              #fi
+            ;;
+           esac
+       done
+  fi

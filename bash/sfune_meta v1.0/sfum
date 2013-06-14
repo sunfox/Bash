@@ -1,0 +1,84 @@
+#!/bin/bash
+# Author : SunFox
+# License : GPLv3
+# SfuRe 2010.
+# Main
+################Check for SfuKe Core
+if [ -e /usr/bin/core ]; then
+   source /usr/bin/core
+else
+  echo "core not found! ."; exit 1
+fi
+##################Checking for .SfuKe directory
+if [ ! -e $HOME/.sfure ]; then
+  necho "$blue ::Creating $green .sfuke/ .."
+  mkdir -p $HOME/.sfure
+  mkdir -p $HOME/.sfure/updater
+fi
+if [ ! -e $HOME/.sfure/updater ]; then
+  necho "$blue ::Creating $green .sfuke/updater .."
+  mkdir -p $HOME/.sfure/updater
+fi
+show_core(){
+            cecho "$green >> $blue Core"
+            cecho "$red # $blue update $green -> $yellow SfuRe UpDater"
+            cecho "$red # $blue news   $green -> $yellow SfuRe NewsReader $red [HardMask]"
+}
+show_options(){
+     cecho "$green >> $blue IceD"
+     cecho "$green >> $blue Media"
+     cecho "$blue [$red*$blue]sound $green -> $yellow SoundPlayer"
+     cecho "$blue [$red*$blue]list  $green -> $yellow ListGenerator"
+     cecho "$blue [$red*$blue]video $green -> $yellow VideoPlayer"
+     cecho "$blue [$red*$blue]marca $green -> $yellow RadioMarca"
+     cecho "$blue [$red*$blue]gba   $green -> $yellow Gba"
+     cecho "$green >> $blue System"
+     cecho "$blue [$red*$blue]files $green -> $yellow Search Sys files"
+     cecho "$blue [$red*$blue]bck   $green -> $yellow Backup"
+     cecho "$blue [$red*$blue]make  $green -> $yellow MakEditor"
+     cecho "$blue [$red*$blue]pkg   $green -> $yellow Pkg files"
+     cecho "$blue [$red*$blue]world   $green -> $yellow World File"
+     cecho "$green >> $blue Network"
+     cecho "$blue [$red*$blue]lan    $green -> $yellow Eth"
+     cecho "$blue [$red*$blue]search $green -> $yellow Search Wlan's"
+     cecho "$blue [$red*$blue]wlan   $green -> $yellow Wlan"
+     cecho "$blue [$red*$blue]home   $green -> $yellow Home"
+     cecho "$green >> $blue FluxBox"
+     cecho "$blue [$red*$blue]show  $green -> $yellow Show Wallpapers"
+     cecho "$blue [$red*$blue]set   $green -> $yellow Change Wallpaper"
+     cecho "$blue [$red*$blue]auto  $green -> $yellow AutoWallpaper"
+     cecho "$blue [$red*$blue]box   $green -> $yellow FluxBox Configurator"
+}
+########################################################## STARTING SFURE
+             cecho "$blue SfuRe $red $V"
+             cecho "$green [ $blue Sfum - The SfuRe Console Client $green ]"
+              check_box_file; check_media_file; check_system_file
+            if [ "$#" -eq "0" ]; then
+              cecho "::Core"; show_core
+              cecho "::Options"; show_options
+              echo
+            else
+              case $1 in
+                "update") if [ "$USER" == "root" ]; then sfure_updater; else cecho "$red as ROOT!";fi ;;
+                "news")   if [ "$USER" == "root" ]; then sfure_reader;  else cecho "$red as ROOT!";fi ;;
+                "iced")   /usr/bin/ice ;;
+                "lan")    if [ "$USER" == "root" ]; then Network_eth;    else cecho "$red as ROOT!";fi ;;
+                "search") if [ "$USER" == "root" ]; then Network_search; else cecho "$red as ROOT!";fi ;;
+                "home")   if [ "$USER" == "root" ]; then Network_home; else cecho "$red as ROOT!";fi ;;
+                "wlan")   if [ "$USER" == "root" ]; then Network_wlan; else cecho "$red as ROOT!";fi ;;
+                "sound")  if [ "$USER" != "root" ]; then Media_sound; else root_error; fi ;;
+                "list")   if [ "$USER" != "root" ]; then Media_list; else root_error; fi ;;
+                "video")  if [ "$USER" != "root" ]; then Media_video; else root_error; fi ;;
+                "marca")  if [ "$USER" != "root" ]; then Media_marca; else root_error; fi ;;
+                "gba")    if [ "$USER" != "root" ]; then Media_gba; else root_error; fi ;;
+                "files")  Sschfl ;;
+                "bck")    if [ "$USER" != "root" ]; then System_backup; else root_error; fi ;;
+                "mke")    if [ "$USER" == "root" ]; then System_makedit; else cecho "$red as ROOT!";fi ;;
+                "pkg")    Spkg ;;
+                "world")  Swld ;;
+                "show")   if [ "$USER" != "root" ]; then Fluxbox_show; else root_error; fi ;;
+                "set")    if [ "$USER" != "root" ]; then Fluxbox_set; else root_error; fi ;;
+                "auto")   if [ "$USER" != "root" ]; then Fluxbox_auto; else root_error; fi ;;
+                "box")    if [ "$USER" != "root" ]; then Fluxbox_box; else root_error; fi ;;
+              esac
+           fi

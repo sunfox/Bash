@@ -1,0 +1,763 @@
+#!/bin/bash
+# Author : SunFox
+# License : GPLv3
+# SfuRe 2010.
+# SfuRe Core.
+##############
+#Colors definition :
+black='\033[1;30m'
+red='\033[1;31m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+blue='\033[1;34m'
+white='\033[1;37m'
+##########################Color Functions
+cecho () {
+          #Color-echo function
+          #Argument $1 : message.
+          #Argument $2 : color.
+          NONE=""
+          MESSAGE1=${1:-$NONE}
+          COLOR1=${2:-$white}
+          MESSAGE2=${3:-$NONE}
+          COLOR2=${4:-$white}
+          echo -e "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+          return
+}
+necho () {
+          #Color-echo function
+          #Argument $1 : message.
+          #Argument $2 : color.
+          NONE=""
+          MESSAGE1=${1:-$NONE}
+          COLOR1=${2:-$white}
+          MESSAGE2=${3:-$NONE}
+          COLOR2=${4:-$white}
+          echo -ne "$COLOR1 $MESSAGE1 $COLOR2 $MESSAGE2"
+          return
+}
+########################################################SFURE CONSTANTS
+SFURE_VERSION="0.99.54.99.9"
+#FETH0="/var/run/dhcpcd-eth0.pid"; FWLAN0="/var/run/dhcpcd-wlan0.pid"
+# NEW!
+FILE_DHCPCD="/var/run/dhcpcd.pid"
+SFURE_GZ="sfuke-$V.tar.gz"
+SFURE_TAR="sfuke-$V.tar"
+SFURE_DIR="$HOME/.sfure"
+SFURE_FILE_VERSION="$SFURE_DIR/version"
+SFURE_FILE_SYSTEM="$SFURE_DIR/system.sfc"
+SFURE_FILE_MEDIA="$SFURE_DIR/media.sfc"
+SFURE_FILE_BOX="$SFURE_DIR/box.sfc"
+########################################################SFURE Auxiliary Functions
+Sfure_connect_error(){
+                      cecho "$red ERROR Cannot connect to http://sfuke.googlecode.com/"
+                      cecho "$blue Please retry when you're connected"
+                      exit 1
+}
+Sfure_root_error(){
+                   cecho "$red ERROR : root can't use Backup Utility!"
+}
+Sfure_check_version(){
+                      cecho "$blue Atempting to download version from http://sfuke.googlecode.com/"
+                      #if [ -e $FETH0 ] || [ -e $FWLAN0 ]; then
+                      if [ -e $FILE_DHCPCD ]; then
+                        cd $HOME/.sfure
+                        if [ -e $SFUKE_FILE_VERSION ]; then
+                          rm $SFUKE_FILE_VERSION
+                        fi
+                        wget http://sfure.googlecode.com/files/version
+                        VERSION_WEB="`cat $SFUKE_FILE_VERSION`"; UPDATE="OK"
+                        if [ "$V" == "$VERSION_WEB" ]; then
+                          UPDATE="NO"
+                        fi
+                      else
+                        Sfure_connect_error
+                      fi
+}
+########################################################SFURE MAIN FUNCTIONS
+Sfure_updater(){
+                cecho "$green Sphur - The SfuKe UpDater"; Sfure_check_version
+                if [ $UPDATE == "NO" ]; then
+                  cecho "$green SfuKe system already updated!"
+                else
+                  cecho "$red SfuKe system outdated!"
+                  cecho "$red SystemVersion : $VERSION"
+                  cecho "$green Last available version : $VERSION_WEB"
+                  necho "$blue Insert your user name: "; read NAME; USER_HOME="/home/$USER_HOME/"
+                  cd $USER_HOME/.sfuke/updater
+                  cecho "$blue Getting $green $SFUKE_GZ .."; sleep 1.5; wget http://sfuke.googlecode.com/files/$SFUKE_GZ
+                  cecho "$blue Checking file integrity ..."; sleep 2
+                  cecho "$blue Unpacking $green $SFUKE_GZ"
+                  gzip -d $USER_HOME/.sfuke/updater/$SFUKE_GZ && tar xvf $USER_HOME/.sfuke/updater/$SFUKE_TAR
+                  cecho "$green Unpacked!"
+                  cecho "$red Removing $green $SFUKE_TAR"; rm $USER_HOME/.sfuke/updater/$SFUKE_TAR
+                  cecho "$blue Copying SfuKe files to $green /usr/bin"
+                  for I in `ls $USER_HOME/.sfuke/updater/`; do
+                    cecho "$green $I"; mv $USER_HOME/.sfuke/updater/$I /usr/bin/
+                  done
+                  cecho "$blue SfuKe updated!"; sleep 1
+                fi
+}
+Sfure_reader(){
+               #if [ -e $FETH0 ] || [ -e $FWLAN0 ]; then
+               if [ -e $FILE_DHCPCD ]; then
+                 cecho "$red SfuKe ReaDer"
+                 cecho "$blue Getting $green SfuKe project's wiki articles .."
+               else
+                 connect_error
+               fi
+}
+############################################################SFURE OPTIONS AUXILIAR FUNCTIONS
+check_option(){
+               if [ "$FILE" == "" ]; then
+                 VAR="no"
+               else
+                 VAR="$FILE"
+               fi
+}
+change_x_file(){
+                TEMP="$SFURE_DIR/optchange.tmp"; touch $TEMP
+                LINE="`cat $FILE_MODULE | grep $OLD_OPTION_MODULE`";FIRST="`echo $OLD_OPTION_MODULE | cut -d";" -f1`"
+                while read LIN; do
+                  if [ "$LIN" == "$LINE" ]; then
+                    echo "$FIRST;$NEW_OPTION_MODULE" >> $TEMP
+                  else
+                    echo $LIN >> $TEMP
+                  fi
+                done< $FILE_MODULE
+                mv $TEMP $FILE_MODULE
+}
+check_box_wallpaper(){
+                   necho "$blue ::Wallpapers Dir : "; read FILE; check_option
+                   echo "wallp;$VAR" >> $SFURE_FILE_BOX
+}
+check_box_file(){
+                 if [ -e $SFURE_FILE_BOX ]; then
+                   cecho "$blue ::Loading $green $SFURE_FILE_BOX .."
+                   DIR_WALL=`cat $SFURE_FILE_BOX | grep wallp | cut -d";" -f2`
+                 else
+                   cecho "$blue [$red!!$blue] $green $SFURE_FILE_BOX. $red No found "
+                   check_box_wallpaper
+                   cecho "$blue :: $green $SFURE_FILE_BOX $blue created!"
+                   check_box_file
+                 fi
+}
+check_system_sys(){
+                   necho "$blue ::GentooSys Backup Dir : "; read FILE ; check_option
+                   echo "sys;$VAR" >> $SFURE_FILE_SYSTEM
+}
+check_system_amsn(){
+                    necho "$blue ::aMSN Backup Dir : "; read FILE; check_option
+                    echo "amsn;$VAR" >> $SFURE_FILE_SYSTEM
+}
+check_system_box(){
+                   necho "$blue ::Fluxbox Backup Dir : "; read FILE; check_option
+                   echo "box;$VAR" >> $SFURE_FILE_SYSTEM
+}
+check_system_sfure(){
+                     necho "$blue ::SfuRe Backup Dir : "; read FILE; check_option
+                     echo "sfure;$VAR" >> $SFURE_FILE_SYSTEM
+}
+check_system_file(){
+                    if [ -e $SFURE_FILE_SYSTEM ]; then
+                      cecho "$blue ::Loading $green $SFURE_FILE_SYSTEM.."
+                      DIR_SYS=`cat $SFURE_FILE_SYSTEM | grep sys | cut -d";" -f2`
+                      DIR_AMSN=`cat $SFURE_FILE_SYSTEM | grep amsn | cut -d";" -f2`
+                      DIR_BOX=`cat $SFURE_FILE_SYSTEM | grep box | cut -d";" -f2`
+                      DIR_SFURE=`cat $SFURE_FILE_SYSTEM | grep sfure | cut -d";" -f2`
+                    else
+                      cecho "$blue [$red!!$blue] $green system $red No found "
+                      check_system_sys;check_system_amsn;check_system_box;check_system_sfure
+                      cecho "$blue ::$green $SFURE_FILE_SYSTEM $blue created!"
+                      check_system_file
+                    fi
+}
+check_media_sound(){
+                    necho "$blue ::Music Dir : "; read FILE; check_option
+                    echo "sound;$VAR" >> $SFURE_FILE_MEDIA
+}
+check_media_series(){
+                     necho "$blue ::Series Dir : "; read FILE; check_option
+                     echo "series;$VAR" >> $SFURE_FILE_MEDIA
+}
+check_media_list(){
+                   necho "$blue ::List Dir : "; read FILE; check_option
+                   echo "list;$VAR" >> $SFURE_FILE_MEDIA
+}
+check_media_gba(){
+                  necho "$blue ::GbaGames Dir : "; read FILE; check_option
+                  echo "gba;$VAR" >> $SFURE_FILE_MEDIA
+}
+check_media_file(){
+                   if [ -e $SFURE_FILE_MEDIA ]; then
+                     cecho "$blue ::Loading $green $SFURE_FILE_MEDIA.."
+                     DIR_SOUND=`cat $SFURE_FILE_MEDIA | grep sound | cut -d";" -f2`
+                     DIR_SERIES=`cat $SFURE_FILE_MEDIA | grep series | cut -d";" -f2`
+                     DIR_LIST=`cat $SFURE_FILE_MEDIA | grep list | cut -d";" -f2`
+                     DIR_GBA=`cat $SFURE_FILE_MEDIA | grep gba | cut -d";" -f2`
+                   else
+                     cecho "$blue [$red!!$blue] $green media $red No found "
+                     check_media_sound;check_media_series;check_media_list;check_media_gba
+                     cecho "$blue ::$green $SFURE_FILE_MEDIA $blue created!"
+                     check_media_file
+                  fi
+}
+#####################################################FLUXBOX Functions
+Fluxbox_show(){
+               if [ "$DIR_WALL" != "no" ]; then
+                 ls $DIR_WALL
+               else
+                 FILE_MODULE=$SFURE_FILE_BOX; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep wallp`"
+                 cecho "$blue ::Wallpaper Dir: "; read NEW_OPTION_MODULE
+                 change_x_file
+               fi
+}
+Fluxbox_set(){
+              if [ "$DIR_WALL" != "no" ]; then
+                ls $DIR_WALL
+                necho "::Select file : "; read KEY
+                FILE=`ls $DIR_WALL | grep $KEY`
+                TEMP="$HOME/.fluxbox/startup.tmp"
+                LINE="`cat $HOME/.fluxbox/startup | grep fbsetbg`"
+                while read LIN; do
+                  if [ "$LIN" == "$LINE" ]; then
+                    echo "fbsetbg -f $DIR_WALL$FILE &" >> $TEMP
+                  else
+                    echo $LIN >> $TEMP
+                  fi
+                done< $HOME/.fluxbox/startup
+                mv $TEMP $HOME/.fluxbox/startup
+                fbsetbg -f $DIR_WALL$FILE
+              else
+                FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep wallp`"
+                cecho "$blue ::Wallpaper Dir : "; read NEW_OPTION_MODULE
+                change_x_file
+              fi              
+}
+Fuxbox_auto(){
+              if [ "$DIR_WALL" != "no" ]; then
+                while : ;do
+                  for I in `ls $DIR_WALL`; do
+                    cecho "$blue ::Setting $I"
+                    fbsetbg -f $DIR_WALL"$I"
+                    TEMP="$HOME/.fluxbox/startup.tmp"
+                    LINE="`cat $HOME/.fluxbox/startup | grep fbsetbg`"
+                    while read LIN; do
+                      if [ "$LIN" == "$LINE" ]; then
+                        echo "fbsetbg -f $DIR_WALL$I &" >> $TEMP
+                      else
+                        echo $LIN >> $TEMP
+                      fi
+                    done< $HOME/.fluxbox/startup
+                    mv $TEMP $HOME/.fluxbox/startup
+                    sleep 2
+                  done
+                done
+              else
+                FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep wallp`"
+                cecho "$blue ::Wallpaper Dir : "; read NEW_OPTION_MODULE
+                change_x_file
+              fi     
+}
+Fluxbox_box(){
+              BOXDIR=$HOME/.fluxbox
+              cecho "$blue :: FluxBox Configuration Tool"
+              cecho "$blue :: Select: $green [1] $blue Menu | $green [2] $blue Startup"; read OPT
+              case $OPT in
+                "1") uxterm -e nano $BOXDIR/menu ;;
+                "2") uxterm -e nano $BOXDIR/startup ;;
+              esac
+}
+#############################################################
+Media_sound(){
+              if [ "$DIR_LIST" != "no" ]; then
+                necho "$blue ::List? (s/n): "
+                read S
+                if [ "$S" = "s" ];then
+                  mp3blaster -l $DIR_LIST
+                else
+                  mp3blaster
+                fi
+              else
+                FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep list`"
+                cecho "$blue ::List File : "; read NEW_OPTION_MODULE
+                change_x_file
+              fi
+}
+Media_video(){
+              if [ "$DIR_SERIES" != "no" ]; then
+                ls $DIR_SERIES
+                necho "$blue ::Serie :"; read CAT
+                ls $DIR_SERIES$CAT;
+                ANOTHER="n"
+                necho "$blue ::Keyword :"; read CAP
+                VIDEO="`ls $DIR_SERIES$CAT/ | grep $CAP`"
+                smplayer "$DIR_SERIES$CAT/$VIDEO"
+                necho "$blue another? "
+                read ANOTHER
+              else
+                FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep series`"
+                cecho "$blue ::Series Dir : "; read NEW_OPTION_MODULE
+                change_x_file
+              fi
+}
+Media_marca(){
+              mplayer mms://reflector.marca.com:9050
+}
+Media_gba(){
+            if [ "$DIR_GBA" != "no" ]; then
+              cecho "$blue ::Games : "; ls $DIR_GBA
+              necho "$blue ::Folder: "; read FOLDER
+              DIR_GBA="$DIR_GBA/$FOLDER"
+              cecho "$green `ls $DIR_GBA | grep gba`"
+              necho "$blue ::Keyword :"; read KEYW
+              GAME="`ls $DIR_GBA | grep gba | grep $KEYW`"
+              `/usr/games/bin/VisualBoyAdvance -F $DIR_GBA/$GAME`
+            else
+              FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep gba`"
+              cecho "$blue ::Gba Dir : "; read NEW_OPTION_MODULE
+              change_x_file
+            fi
+}
+##############################################################MP3LIST
+add2list() {
+            while read LINE; do
+              echo $PWD/"$LINE" >> $DIR_LIST
+              NUMBEROF_AUDIO_FILES=`expr $NUMBEROF_AUDIO_FILES + 1`
+            done < $HOME/aux.txt
+}
+fcontinue() { cecho "$blue ::Press enter to continue...";read ENTER
+}
+group(){
+        cd $DIR_SOUND$NAMEGRP
+        load_arrays
+#########################################SEARCHING FOR DIRS
+NDIRS=0;NAUDIO=0
+for ((I=1;I<="$NFILES";I++));do
+LINE=${ARRAY_INFO[$I]}
+if [ "${LINE:0:1}" = "d" ];then
+NDIRS=`expr $NDIRS + 1`
+else
+NAUDIO=`expr $NAUDIO + 1`
+fi
+if [ $NDIRS = "$NFILES" ];then NODIR="f"; fi
+if [ $NAUDIO = "$NFILES" ];then NODIR="y"; fi
+done
+#############################################WRITING TO LIST.LST
+##########################################FOLDERS
+#load_arrays
+case $NODIR in
+"f")
+cecho "$blue $NAMEGRP"
+echo "<GROUP NAME="\"$NAMEGRP"\">" >> $DIR_LIST
+for ((I=1;I<="$NFILES";I++));do
+LINE=${ARRAY_INFO[$I]}
+if [ "${LINE:0:1}" = "d" ];then
+cd $DIR_SOUND"$NAMEGRP"/"${ARRAY_NAME[${I}]}"
+FILES_NAME="`ls -1`"
+NumberFILES=`ls | wc -l`
+cecho "$green >> $blue [F] : $red $NumberFILES $yellow ${ARRAY_NAME[${I}]}"
+PWD=`pwd`
+#FIchero auxiliar
+echo "$FILES_NAME" >> $HOME/aux.txt
+add2list
+rm $HOME/aux.txt
+cd ..
+fi
+done
+echo "</GROUP>" >> $DIR_LIST
+;;
+############################################## NO FOLDERS
+"y")
+TAMSIZE=${#NFILES}
+while [ $TAMSIZE -lt 2 ] ; do
+NFILES2=$NFILES2" "
+TAMSIZE=${#NFILES2}
+done
+cecho "$blue[$red $NFILES $blue] $green $blue"$NAMEGRP""
+echo "<GROUP NAME="\"$NAMEGRP"\">" >> $DIR_LIST
+PWD=`pwd`
+#FIchero auxiliar
+echo "$FILES_NAME" >> $HOME/aux.txt
+add2list
+echo "</GROUP>" >> $DIR_LIST
+rm $HOME/aux.txt
+;;
+esac
+}
+#Funtion load_arrays
+#Guarda la información : dir/files y el nombre
+load_arrays() {
+FILES_INFO=`ls -l -1 | cut -d" " -f1 | grep -v total`
+FILES_NAME="`ls -1`"
+NFILES=`ls | grep -v .rar | wc -l`
+CONT=1
+for I in $FILES_INFO;do
+ARRAY_INFO[$CONT]="$I"
+CONT=`expr $CONT + 1`
+done
+CONT=1
+for I in $FILES_NAME;do
+ARRAY_NAME[$CONT]="$I"
+CONT=`expr $CONT + 1`
+done
+return
+}
+
+Media_list(){
+             if [ "$DIR_LIST" != "no" ] && [ "$DIR_SOUND" != "no" ]; then
+               cecho "$blue ListGen $green"
+               cecho "$green [1] $blue Add New Group"
+               cecho "$green [2] $blue Add AllGroups"
+               cecho "$green [3] $blue Change Directory"
+               cecho "$green [4] $blue ReNew ~list.lst"
+               cecho "$green [5] $blue Exit."
+               read OPTION
+               case $OPTION in
+    1)
+      cecho "$blue ::Folders in music :"
+      echo; ls -C $DIR
+      necho "$blue ::Select GroupName : "; read NAMEGRP
+      group
+    ;;
+    2)
+      echo "<GLOBAL PLAYMODE="\"allgroups"\">" >> $DIR_LIST
+      C=0
+      NUMBEROF_FILES=0
+      necho "$blue ::AllGroups : "
+      cecho "$blue ::Folders in music :"
+      echo
+      for I in `ls -1 $DIR_SOUND`; do
+        NAMEGRP="$I"
+        group
+        C=`expr $c + 1`
+        if [ $C -eq 8 ]; then
+          C=0
+          sleep 2
+        fi
+      done
+      cecho "$blue ::AudioFiles : $NUMBEROF_AUDIO_FILES"
+    ;;
+    3)
+      necho "$blue ::Insert directory : "; read NAME
+      cecho "$blue ::Changing directory..."
+      for I in `cat $SFURE_FILE_MEDIA | cut -d" " -f1`; do
+        if [ "$I" == "sound" ]; then
+          echo "sound $NAME" > $SFURE_DIR/media.tmp
+        else
+          echo "$I" >> $SFURE_DIR/media.tmp
+        fi
+      done
+      mv $SFURE_DIR/media.tmp $SFURE_FILE_MEDIA
+      cecho "$green >>Done!"
+    ;;
+    4)
+      cecho "$blue ::ReNewing $DIR_LIST..."; rm $DIR_LIST; touch $DIR_LIST; cecho "$green >>Done!" ;; 
+    esac
+              else
+                if [ "$DIR_SOUND" == "no" ]; then
+                  FILE_MODULE="$SFURE_FILE_MEDIA"; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep sound`"
+                  necho "$blue ::Music Dir : "; read NEW_OPTION_MODULE
+                  if [ "$NEW_OPTION_MODULE" != "" ]; then
+                    change_x_file
+                  else
+                    cecho "$red ::ERROR you have to set $green sound $red in $blue $FILE_MODULE"
+                  fi
+                fi
+                if [ "$DIR_LIST" == "no" ]; then
+                  FILE_MODULE=$SFURE_FILE_MEDIA; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep list`"
+                  necho "$blue ::List File : "; read NEW_OPTION_MODULE
+                  if [ "$NEW_OPTION_MODULE" != "" ]; then
+                    change_x_file
+                  else
+                    cecho "$red ::ERROR you have to set $green list $red in $blue $FILE_MODULE"
+                  fi
+                fi
+              fi
+}
+#########################################################################NETWORK FUNCTIONS
+#Function connect : Conecta por eth0 o wlan0
+Network_connect_to(){
+                     cecho "$blue ::Connecting to $INTERFACE..."
+                     dhcpcd $INTERFACE
+                     cecho "$green >>Connected to "$NETWORK" : [OK]"
+}
+#Function kill-iface : Mata el valor de Dhcpcd eth0 o wlan0
+Network_kill_interface() {
+                         # if [ -e $FILE_INTERFACE ]; then
+                          if [ -e $FILE_DHCPCD ]; then
+                            VALOR=`cat $FILE_DHCPCD`
+                            cecho "$blue ::Killing $VALOR ..."; 
+                            kill -9 $VALOR; cecho "$red >>Killed $VALOR !"
+                          fi
+}
+Network_restart_net() {
+                       cecho "$blue ::Restarting $INTERFACE interface... "
+                       ifconfig $INTERFACE down
+                       cecho "$red >>$INTERFACE down!"
+                       ifconfig $INTERFACE up
+                       cecho "$green >>$INTERFACE up! "
+}
+#Function switch_status : Cambia el estado de la interfaz wlan0
+Network_switch_status() {
+                         cecho "$blue ::Switching $STATUS wlan0 interface ..."
+                         ifconfig wlan0 $STATUS
+                         cecho "$red >>wlan0 $STATUS!"
+                         cecho "$green >>Done!"
+}
+#-----------------------------------------------------------
+Network_lan(){
+              #FILE_INTERFACE=$FETH0; Network_kill_interface
+              Network_kill_interface
+              INTERFACE="eth0"; Network_restart_net
+              Network_restart_net
+              Network_connect_to
+}
+Network_search(){
+                 TEMP="$HOME/essid.tmp"; TEMP2="$HOME/pass.tmp"
+                 ifconfig wlan0 up
+                 cecho "$blue ::Searching Access Points..."
+                 cecho "$blue ::Access Points"
+                 cecho "$yellow -------------"
+                 ESSID="`iwlist wlan0 scan | grep "ESSID" | tr -s " " "_" | cut -d":" -f2`" >> $TEMP
+                 PASS="`iwlist wlan0 scan | grep "Encryption" | cut -d":" -f2`" >> $TEMP2
+                 A=0
+                 for I in $ESSID; do
+                   A_ESSID[$A]=$I
+                   A=`expr $A + 1`
+                 done
+                 A=1
+                 for I in $PASS; do
+                   A_PASS[$A]=$I
+                   A=`expr $A + 1`
+                 done     
+                 for (( i=0;i<=${#A_ESSID[@]};i++ )); do
+                   necho "$blue ${A_ESSID[$i]}"
+                   if [ "${A_PASS[$i]}" == "off" ]; then
+                     necho "$green ${A_PASS[$i]}"
+                   else
+                     cecho "$red ${A_PASS[$i]}"
+                   fi
+                 done
+}
+Network_wlan(){
+               #FILE_INTERFACE=$FWLAN0; Network_kill_interface
+               Network_kill_interface
+               STATUS="down"; Network_switch_status
+               necho "$blue ::Select ESSID : "; read NETWORK;
+               necho "$blue ::Password? (s/n)"; read TIENE;
+               if [ "$TIENE" = "s" ];then
+                 necho "$blue ::Password : "; read KEY
+                 iwconfig wlan0 ESSID "$NETWORK" key $KEY
+               else 
+                 iwconfig wlan0 ESSID "$NETWORK"
+               fi
+               STATUS="up"; Network_switch_status
+               INTERFACE="wlan0"; Network_connect_to
+}
+Network_home(){
+               #FILE_INTERFACE=$FWLAN0; Network_kill_interface
+               Network_kill_interface
+               INTERFACE="wlan0"; Network_restart_net
+               iwconfig $INTERFACE ESSID WLAN
+               Network_connect_to
+}
+#########################################################################SYSTEM FUNCTIONS
+System_backup_user(){
+                     cecho "$green [+]UserFiles"
+                     cecho "$green ::Copying Fluxbox"
+                     cecho "$blue ::Removing files in $red $DIR_BOX"; rm -R $DIR_BOX/*
+                     cecho "$blue ::Copying files in $green $DIR_BOX"; cp -R $HOME/.fluxbox/* $DIR_BOX/
+                     cecho "$green >>Done!"
+                     cecho "$green ::Copying aMSN"
+                     cecho "$blue ::Removing files in $red $DIR_AMSN"; rm -R $DIR_AMSN/*
+                     cecho "$blue ::Copying files in $green $DIR_AMSN"; cp -R $HOME/.amsn/* $DIR_AMSN/
+                     cecho "$green >>Done! "
+                     cecho "$green [+]SysFiles"
+                     cecho "$blue ::02locale"; cp /etc/env.d/02locale $DIR_SYS/
+                     cecho "$blue ::locale.gen"; cp /etc/locale.gen $DIR_SYS/
+                     cecho "$blue ::make.conf"; cp /etc/make.conf $DIR_SYS/
+                     cecho "$blue ::world"; cp /var/lib/portage/world $DIR_SYS/
+                     cecho "$blue ::XTerm-color"; cp /usr/share/X11/app-defaults/XTerm-color $DIR_SYS/
+                     cecho "$green >>Done!"
+}
+System_backup_sfure(){
+                      cecho "$green [+]SfuRe"
+		      necho "$blue >>[Main]: "
+		      cecho "$green Sfum"; cp /usr/bin/sfum $DIR_SFURE/
+		      cecho "$green Core"; cp /usr/bin/core $DIR_SFURE/
+		      necho "$blue >>[Ice]"; cp /usr/bin/iced $DIR_SFURE/
+		      cecho "$green >>Done!"
+}
+System_backup(){
+                if [ "$DIR_SYS" != "no" ] && [ "$DIR_AMSN" != "no" ] && [ "$DIR_BOX" != "no" ] && [ "$DIR_SFURE" != "no" ]; then
+                  cecho "$blue ::Backup Utility "
+                  cecho "$blue ::$green UserFiles [$blue amsn $green|$blue fluxbox $green]"
+                  cecho "$blue ::$green SysFiles"
+                  cecho "$blue 02locale locale.gen make.conf"
+                  cecho "$blue world XTerm-color"
+                  cecho "$blue ::$green SfuRe"
+                  cecho "$blue [Main]: Sfum"
+                  cecho "$blue [Libs]: Bash"
+                  cecho "$blue [Mods]: Sfum Core IceD"
+                  echo
+                  necho "$blue ::Select [1:All|2:User-Sys|3:SfuRe] : "
+                  read SELECT
+                  case $SELECT in
+                    1) System_backup_user; System_backup_sfure ;;
+                    2) System_backup_user ;;
+                    3) System_backup_sfure ;;
+                  esac
+                else
+                  if [ "$DIR_SYS" == "no" ]; then
+                    FILE_MODULE="$SFURE_FILE_SYSTEM"; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep sys`"
+                    necho "$blue ::GentooSys Backup Dir : "; read NEW_OPTION_MODULE
+                    if [ "$NEW_OPTION_MODULE" != "" ]; then
+                      change_x_file
+                    else
+                      cecho "$red ::ERROR you have to set $green sys $red in $blue $FILE_MODULE"
+                    fi
+                  fi
+                  if [ "$DIR_AMSN" == "no" ]; then
+                    FILE_MODULE=$SFURE_FILE_SYSTEM; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep amsn`"
+                    necho "$blue ::Amsn Backup Dir : "; read NEW_OPTION_MODULE
+                    if [ "$NEW_OPTION_MODULE" != "" ]; then
+                      change_x_file
+                    else
+                      cecho "$red ::ERROR you have to set $green amsn $red in $blue $FILE_MODULE"
+                    fi
+                  fi
+                  if [ "$DIR_BOX" == "no" ]; then
+                    FILE_MODULE=$SFURE_FILE_SYSTEM; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep box`"
+                    necho "$blue ::Box Backup Dir : "; read NEW_OPTION_MODULE
+                    if [ "$NEW_OPTION_MODULE" != "" ]; then
+                      change_x_file
+                    else
+                      cecho "$red ::ERROR you have to set $green box $red in $blue $FILE_MODULE"
+                    fi
+                  fi
+                  if [ "$DIR_SFURE" == "no" ]; then
+                    FILE_MODULE=$SFURE_FILE_SYSTEM; OLD_OPTION_MODULE="`cat $FILE_MODULE | grep sfure`"
+                    necho "$blue ::SfuRe Backup Dir : "; read NEW_OPTION_MODULE
+                    if [ "$NEW_OPTION_MODULE" != "" ]; then
+                      change_x_file
+                    else
+                      cecho "$red ::ERROR you have to set $green sfure $red in $blue $FILE_MODULE"
+                    fi
+                  fi
+                fi
+}
+System_search_in_files(){
+			 cecho "$blue ::Search Sys Files Utility "
+                         necho "$blue ::Keyword: "; read KEYW
+                         necho "$blue Searching "; echo "$KEYW ..."
+                         cecho "$blue ::/etc/make.conf"
+                         BUSQ=`cat /etc/make.conf | grep $KEYW`
+                         if [ -z "$BUSQ" ]; then
+                           cecho "$red >>No matches found"
+                         else
+                           echo -e "033[1;32m $BUSQ 033[0m"
+                         fi
+                         cecho "$blue ::/etc/portage/package.keywords"
+                         BUSQ=`cat /etc/portage/package.keywords | grep $KEYW`
+                         if [ -z "$BUSQ" ]; then
+                           cecho "$red >>No matches found"
+                         else
+                           echo -e "033[1;32m $BUSQ 033[0m"
+                         fi
+                         cecho "$green >>Done!"
+}
+System_adding(){
+                TAMLINE=`expr ${#LINE} - 1`
+                while read LIN; do
+                  if [ "$LIN" == "$LINE" ]; then
+                    LINE2=${LINE:0:$TAMLINE}" "$TOADD""
+                    echo $LINE2 >> $TEMP
+                  else
+                    echo $LIN >> $TEMP
+                  fi
+                done< /etc/make.conf
+                mv $TEMP /etc/make.conf
+}
+System_makedit(){
+                 cecho "$blue ::MakEditor Utility "
+                 TEMP="/etc/make.tmp"
+                 if [ "${USER}" == "root" ]; then
+                   cecho "$blue Simply Make.conf Lines Utility"
+                   necho "$blue Select (1=Add; 2=Remove)"; read ACTION
+                   necho "$blue Select (1=USE;2=LICENSE)"; read CAT
+                   case $CAT in
+                     1)
+                       cecho "$blue Showing Use categories"
+                       LINE=`cat /etc/make.conf | grep USE | egrep -v "#"`
+                       cecho "$USESLINE"
+                       cecho "$blue Setting USES line"
+                       necho "$blue KeyLine: "; read UT
+                       LINE=` cat /etc/make.conf | grep $UT | egrep -v USE`
+                       necho "$blue To add to $LINE : "; read TOADD
+                       System_adding
+                     ;;
+                     2)
+                       cecho "$bue Showing acttive licenses"
+                       LINE=`cat /etc/make.conf | grep LICENSE`
+                       cecho "$LINE"
+                       necho "$blue To add to $LINE : "; read TOADD
+                       System_adding
+                     ;;
+                   esac
+                 else
+                   cecho "$red ERROR : $USER can't use Backup Utility!"
+                 fi
+}
+System_package_files(){
+                       cecho "$blue ::Package Files Utility "
+                       necho "$blue ::Package : "; read PKG
+                       necho "$blue ::Showing files of "
+                       echo "$PKG"; equery f $PKG
+                       cecho "$green >>Done!"
+}
+System_world(){
+  cecho "$blue ::World Utility "
+  cecho "$blue ::Showing packages installed ..."
+  CONT=`wc -l /var/lib/portage/world | cut -d" " -f1`
+  cecho "$blue ::Packages installed : $green $CONT"
+  cecho "$green >>Done!"
+  necho "$blue ::Select and Option [1:show|2:grep]: "; read OPT
+  case $OPT in
+    1)
+     cecho "$blue ::Show all packages ..."
+     read manulo
+     I=1
+     while read LINE; do
+       if [ $I -ge 2 ]; then
+         if [ "$CAT" = "$CAT2" ]; then
+           PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+           PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+           VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+           cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+         else
+           CAT=$CAT2
+           PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+           PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+           VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+           echo "------------------------------"
+           cecho "$yellow [C] $CAT"
+           cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+         fi
+       else
+         CAT=`echo $line | cut -d"/" -f1`
+         PAK=`eix $LINE | grep -v Description | grep -v "Installed versions" | grep -v Homepage | grep -v "Available versions"`
+         PAK=`echo $PAK | cut -d"/" -f2 | cut -d" " -f1`
+         VER=`eix $LINE | grep "Installed versions" | tr -s " " " " | cut -d" " -f4 | cut -d"(" -f1`
+         cecho "$yellow [C] $CAT"
+         cecho "$blue [$green $I $blue] Package : $green $PAK $blue Version $red [$VER]"
+       fi
+       I=`expr $I + 1`
+     done < /var/lib/portage/world
+    ;;
+    2) ###########################################OPT=1 ponerlo como función y llamarla aqui, y hacer un grep de esa funcion
+      necho "$blue ::Category: "; read cat ###### Copiarlo a un archivo los paquetes coincidentes y contar las lineas
+      show_pck | grep $cat
+    ;;
+  esac
+}

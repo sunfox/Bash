@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# simplepb.sh
+# A very simple bash progress bar.
+# Still needs a lot of work to become useful.
+# ksaver (at identi.ca), Aug 2010.
+# License: Public Domain
+
+function progr_bar()
+{
+    MAX=$1
+    PERCENT=0
+    FOO=">"
+    BAR=""
+
+    while [ $PERCENT -lt $(($MAX+1)) ]
+    do  
+        echo -ne "\r\t[ "
+        echo -ne "$BAR$FOO ] $((PERCENT*100/$MAX))% "
+        BAR="${BAR}="
+        let PERCENT=$PERCENT+1
+        sleep 0.2
+    done
+
+    echo -e " Done.\n"
+}
+
+progr_bar 20
